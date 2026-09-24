@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { useAuth } from "../componentes/AuthContext";
 import Marca from "../componentes/Marca";
 import { USE_MOCKS } from "../servicios/api.js";
@@ -140,8 +140,7 @@ export default function Login() {
           </form>
 
           <p className="text-center small mt-3 mb-0">
-            ¿No tienes cuenta?{" "}
-            <Link to="/register" className="text-decoration-underline fw-semibold">Regístrate como paciente</Link>
+            Sólo el personal autorizado puede acceder a esta aplicación.
           </p>
 
           {USE_MOCKS && (

@@ -13,7 +13,6 @@ import Footer from './componentes/Footer.jsx'
 import ProtectedRoute from './componentes/ProtectedRoute.jsx'
 
 const Login = lazy(() => import('./paginas/Login.jsx'))
-const Registro = lazy(() => import('./paginas/Registro.jsx'))
 const Inicio = lazy(() => import('./paginas/Inicio.jsx'))
 const Dashboard = lazy(() => import('./paginas/Dashboard.jsx'))
 const Atenciones = lazy(() => import('./paginas/Atenciones.jsx'))
@@ -51,7 +50,6 @@ const router = createBrowserRouter([
     children: [
       { index: true, element: <Inicio /> },
       { path: 'login', element: <Login /> },
-      { path: 'register', element: <Registro /> },
       {
         path: 'dashboard',
         element: (

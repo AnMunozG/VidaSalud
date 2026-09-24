@@ -105,9 +105,6 @@ export default function Header() {
           <div className="header-actions d-flex align-items-center gap-2 ms-auto">
             {!isAuth ? (
               <>
-                <Link to="/register" className="btn btn-outline-primary d-none d-sm-inline-block">
-                  <i className="bi bi-person-plus me-1"></i>Regístrate
-                </Link>
                 <Link to="/login" className="btn btn-primary">
                   <i className="bi bi-box-arrow-in-right me-1"></i>Iniciar sesión
                 </Link>

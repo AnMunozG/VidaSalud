@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 import { Link } from "react-router-dom";
 import BadgeEstado from "../componentes/BadgeEstado";
-import { SERVICIOS, BENEFICIOS, TESTIMONIOS, FAQ, fondoLanding, imagenServicio } from "../componentes/Datos.js";
+import { SERVICIOS, BENEFICIOS, FAQ, fondoLanding, imagenServicio } from "../componentes/Datos.js";
 
 function Eyebrow({ children }) {
   return <span className="inicio-eyebrow">{children}</span>;
@@ -235,36 +235,6 @@ export default function Inicio() {
                   <Link to="/login" className="inicio-icono-link">
                     Agendar <i className="bi bi-arrow-right ms-1"></i>
                   </Link>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      <section className="inicio-section" id="testimonios">
-        <div className="inicio-container">
-        <SeccionHead
-          eyebrow="Historias reales"
-          titulo="Nuestros pacientes cuentan cómo fue"
-        />
-          <div className="row g-4">
-            {TESTIMONIOS.map((t, i) => (
-              <div className="col-md-4" key={t.nombre} data-reveal style={{ "--rd": `${i * 0.1}s` }}>
-                <div className="inicio-testimonio-card">
-                  <div className="inicio-estrellas">
-                    {Array.from({ length: 5 }, (_, n) => (
-                      <i className="bi bi-star-fill" key={n}></i>
-                    ))}
-                  </div>
-                  <p className="inicio-testimonio-cita">“{t.cita}”</p>
-                  <div className="d-flex align-items-center gap-2">
-                    <div className="inicio-avatar">{t.nombre.charAt(0)}</div>
-                    <div>
-                      <div className="fw-semibold">{t.nombre}</div>
-                      <div className="small c-muted">{t.rol}</div>
-                    </div>
-                  </div>
                 </div>
               </div>
             ))}

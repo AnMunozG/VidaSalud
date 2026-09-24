@@ -1,7 +1,7 @@
 import { createContext, useContext, useCallback, useEffect, useRef, useState } from "react";
 import { autenticacionService } from "../api.js";
 import { TOKEN_KEY, USER_KEY, AUTH_MODE_KEY } from "../servicios/api.js";
-import { getMsalInstance, loginRequest, isMsalConfigured, profileFromClaims } from "../servicios/msal.js";
+import { initializeMsal, loginRequest, isMsalConfigured, profileFromClaims } from "../servicios/msal.js";
 
 const AuthContext = createContext(null);
 
@@ -31,35 +31,38 @@ export function AuthProvider({ children }) {
     try {
       // El backend resuelve el perfil y los roles internos desde el token de Azure AD.
       const res = await autenticacionService.loginMicrosoft(accessToken, claims);
+      console.info("[MSAL] Roles del token:", claims?.roles || [], "→ rol interno:", res.user?.rol);
       persistir(res.user, accessToken, "msal");
     } catch {
       // Fallback con los claims del ID token mientras /auth/microsoft no esté listo.
-      persistir(profileFromClaims(claims), accessToken, "msal");
+      const usr = profileFromClaims(claims);
+      console.info("[MSAL] Roles del token (fallback):", claims?.roles || [], "→ rol interno:", usr?.rol);
+      persistir(usr, accessToken, "msal");
     }
   }, []);
-  // Procesa el resultado del redirect de MSAL al volver de login.microsoftonline.com
+// Procesa el resultado del redirect de MSAL al volver de login.microsoftonline.com
   useEffect(() => {
     // En tests (vitest) no se inicializa MSAL ni se ejecuta el redirect.
     if (import.meta.env.MODE === 'test') return;
-    const msal = getMsalInstance();
-    if (!msal || redirectHandled.current) {
+    if (redirectHandled.current) {
       setMsalReady(true);
       return;
     }
     redirectHandled.current = true;
-    msal
-      .handleRedirectPromise()
-      .then(async (respuesta) => {
+    initializeMsal()
+      .then(async (msal) => {
+        if (!msal) return;
+        const respuesta = await msal.handleRedirectPromise();
         if (respuesta?.account) {
           try {
             const res = await msal.acquireTokenSilent({ ...loginRequest, account: respuesta.account });
             await completarLoginMicrosoft(res.accessToken, res.idTokenClaims || respuesta.idTokenClaims || {});
-          } catch {
-            setMsalReady(true);
+          } catch (e) {
+            console.error("[MSAL] Error al completar login por redirect:", e);
           }
         }
       })
-      .catch(() => {})
+      .catch((e) => console.error("[MSAL] handleRedirectPromise falló:", e))
       .finally(() => setMsalReady(true));
   }, [completarLoginMicrosoft]);
 
@@ -69,18 +72,19 @@ export function AuthProvider({ children }) {
     return res.user;
   };
 
-  // Registro sin Azure AD: crea la cuenta y la deja iniciada.
-  const register = async (data) => {
-    const res = await autenticacionService.register(data);
-    persistir(res.user, res.token, "tradicional");
-    return res.user;
-  };
-
   const loginWithMicrosoft = () => {
-    const msal = getMsalInstance();
-    if (!msal) return;
-    // Redirige al login de Microsoft. Al volver, el useEffect procesa la respuesta.
-    msal.loginRedirect(loginRequest).catch(() => {});
+    initializeMsal()
+      .then((msal) => {
+        if (!msal) {
+          console.error("[MSAL] No configurado: revisa VITE_MSAL_CLIENT_ID y VITE_MSAL_TENANT_ID en .env y reinicia el dev server.");
+          return;
+        }
+        // Redirige al login de Microsoft. Al volver, el useEffect procesa la respuesta.
+        msal.loginRedirect(loginRequest).catch((err) => {
+          console.error("[MSAL] Error en loginRedirect:", err?.message || err);
+        });
+      })
+      .catch((err) => console.error("[MSAL] Inicialización de MSAL falló:", err?.message || err));
   };
 
   const logout = async () => {
@@ -91,8 +95,9 @@ export function AuthProvider({ children }) {
     localStorage.removeItem(AUTH_MODE_KEY);
     autenticacionService.logoutServerSide();
     if (mode === "msal" && isMsalConfigured) {
-      const msal = getMsalInstance();
-      msal?.logoutRedirect({ postLogoutRedirectUri: window.location.origin }).catch(() => {});
+      initializeMsal()
+        .then((msal) => msal?.logoutRedirect({ postLogoutRedirectUri: window.location.origin }))
+        .catch((e) => console.error("[MSAL] Error en logoutRedirect:", e));
     }
   };
 
@@ -106,7 +111,6 @@ export function AuthProvider({ children }) {
       value={{
         user,
         login,
-        register,
         loginWithMicrosoft,
         logout,
         updateUser,

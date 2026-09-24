@@ -32,11 +32,27 @@ export const loginRequest = {
 };
 
 let instance = null;
+let initPromise = null;
 
 export function getMsalInstance() {
   if (!isMsalConfigured) return null;
   if (!instance) instance = new PublicClientApplication(msalConfig);
   return instance;
+}
+
+// MSAL v5 exige inicializar la instancia (pca.initialize()) antes de usar
+// cualquier API (loginRedirect, handleRedirectPromise, etc.). Esta función
+// garantiza que se inicialice solo una vez, sin importar quién la pida.
+export function initializeMsal() {
+  if (!isMsalConfigured) return Promise.resolve(null);
+  const msal = getMsalInstance();
+  if (!initPromise) {
+    initPromise = msal.initialize().catch((e) => {
+      initPromise = null;
+      throw e;
+    });
+  }
+  return initPromise.then(() => msal);
 }
 
 // Mapea los claim `roles` del token de Azure AD (App Roles) a roles internos.
