@@ -1,0 +1,5 @@
+com\vidasalud\bff\controller\GatewayProxyController.class
+com\vidasalud\bff\MsVidasaludBffApplication.class
+com\vidasalud\bff\config\OpenApiConfig.class
+com\vidasalud\bff\config\RestTemplateConfig.class
+com\vidasalud\bff\config\SecurityConfig.class

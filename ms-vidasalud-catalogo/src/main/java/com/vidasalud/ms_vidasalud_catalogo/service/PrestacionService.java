@@ -32,6 +32,10 @@ public class PrestacionService {
             existente.setCodigoBox(detalles.getCodigoBox());
             existente.setCuposDisponibles(detalles.getCuposDisponibles());
             existente.setPrecio(detalles.getPrecio());
+            existente.setCategoria(detalles.getCategoria());
+            existente.setDuracionMin(detalles.getDuracionMin());
+            existente.setRequiereBox(detalles.getRequiereBox());
+            existente.setActiva(detalles.getActiva());
             return repository.save(existente);
         });
     }

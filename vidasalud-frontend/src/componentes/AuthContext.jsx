@@ -1,7 +1,8 @@
 import { createContext, useContext, useCallback, useEffect, useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { autenticacionService } from "../api.js";
 import { TOKEN_KEY, USER_KEY, AUTH_MODE_KEY } from "../servicios/api.js";
-import { initializeMsal, loginRequest, isMsalConfigured, profileFromClaims } from "../servicios/msal.js";
+import { initializeMsal, loginRequest, isMsalConfigured, profileFromClaims, claimsFromAccessToken } from "../servicios/msal.js";
 
 const AuthContext = createContext(null);
 
@@ -15,6 +16,7 @@ function leerUsuarioGuardado() {
 }
 
 export function AuthProvider({ children }) {
+  const navigate = useNavigate();
   const [user, setUser] = useState(leerUsuarioGuardado);
   // msalReady: en tests (vitest) se considera listo de entrada y se omite MSAL.
   const [msalReady, setMsalReady] = useState(!isMsalConfigured || import.meta.env.MODE === 'test');
@@ -28,18 +30,23 @@ export function AuthProvider({ children }) {
   };
 
   const completarLoginMicrosoft = useCallback(async (accessToken, claims) => {
+    let usr;
     try {
       // El backend resuelve el perfil y los roles internos desde el token de Azure AD.
       const res = await autenticacionService.loginMicrosoft(accessToken, claims);
-      console.info("[MSAL] Roles del token:", claims?.roles || [], "→ rol interno:", res.user?.rol);
-      persistir(res.user, accessToken, "msal");
+      usr = res.user;
+      console.info("[MSAL] Roles del token:", claims?.roles || [], "→ rol interno:", usr?.rol);
+      persistir(usr, accessToken, "msal");
     } catch {
-      // Fallback con los claims del ID token mientras /auth/microsoft no esté listo.
-      const usr = profileFromClaims(claims);
+      // Fallback con los claims del access token (roles de la API) mientras
+      // /auth/microsoft no esté listo.
+      usr = profileFromClaims(claims);
       console.info("[MSAL] Roles del token (fallback):", claims?.roles || [], "→ rol interno:", usr?.rol);
       persistir(usr, accessToken, "msal");
     }
-  }, []);
+    // Redirige al home del rol apenas termina el login de Microsoft.
+    navigate(usr.rol === "auditor" ? "/audit" : "/dashboard", { replace: true });
+  }, [navigate]);
 // Procesa el resultado del redirect de MSAL al volver de login.microsoftonline.com
   useEffect(() => {
     // En tests (vitest) no se inicializa MSAL ni se ejecuta el redirect.
@@ -56,7 +63,14 @@ export function AuthProvider({ children }) {
         if (respuesta?.account) {
           try {
             const res = await msal.acquireTokenSilent({ ...loginRequest, account: respuesta.account });
-            await completarLoginMicrosoft(res.accessToken, res.idTokenClaims || respuesta.idTokenClaims || {});
+            // Roles en el access token de la API (App Roles del registro
+            // vidasalud-bff-api); el ID token del SPA no los trae.
+            const accessClaims = claimsFromAccessToken(res.accessToken);
+            const claims = {
+              ...(res.idTokenClaims || respuesta.idTokenClaims || {}),
+              ...(accessClaims || {}),
+            };
+            await completarLoginMicrosoft(res.accessToken, claims);
           } catch (e) {
             console.error("[MSAL] Error al completar login por redirect:", e);
           }

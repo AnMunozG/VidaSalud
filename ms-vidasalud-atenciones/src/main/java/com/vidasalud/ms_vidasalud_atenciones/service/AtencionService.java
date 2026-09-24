@@ -4,19 +4,24 @@ import com.vidasalud.ms_vidasalud_atenciones.model.Atencion;
 import com.vidasalud.ms_vidasalud_atenciones.repository.AtencionRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
-import org.springframework.web.client.RestTemplate;
 
 import java.util.List;
 import java.util.Optional;
 
+/**
+ * Reglas de negocio del módulo de atenciones.
+ *
+ * <p>Se eliminó la "Regla de Negocio" que descontaba cupo en ms-vidasalud-catalogo
+ * al confirmar una atención: apuntaba a una URL inexistente
+ * ({@code /api/catalog/services/{id}/descontar-cupo}) y a {@code localhost:8081},
+ * que dentro de Docker apunta al propio contenedor. Hasta que el catálogo exponga
+ * ese endpoint, la transición de estado solo persiste el nuevo estado.</p>
+ */
 @Service
 @RequiredArgsConstructor
 public class AtencionService {
 
     private final AtencionRepository repository;
-    private final RestTemplate restTemplate;
-
-    private static final String CATALOG_SERVICE_URL = "http://localhost:8081/api/catalog/services/";
 
     public List<Atencion> obtenerTodas() {
         return repository.findAll();
@@ -39,21 +44,9 @@ public class AtencionService {
 
     public Optional<Atencion> cambiarEstado(Long id, String nuevoEstado) {
         return repository.findById(id).map(atencion -> {
-            // Regla de Negocio: Si pasa a CONFIRMADA, notifica al catálogo para reducir cupo
-            if ("CONFIRMADA".equalsIgnoreCase(nuevoEstado) && !"CONFIRMADA".equalsIgnoreCase(atencion.getEstado())) {
-                descontarCupoEnCatalogo(atencion.getPrestacionId());
-            }
             atencion.setEstado(nuevoEstado);
             return repository.save(atencion);
         });
-    }
-
-    private void descontarCupoEnCatalogo(Long prestacionId) {
-        try {
-            restTemplate.put(CATALOG_SERVICE_URL + prestacionId + "/descontar-cupo", null);
-        } catch (Exception e) {
-            System.err.println("Advertencia: No se pudo contactar ms-vidasalud-catalog en el puerto 8081. " + e.getMessage());
-        }
     }
 
     public boolean eliminar(Long id) {

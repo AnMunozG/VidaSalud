@@ -55,6 +55,26 @@ export function initializeMsal() {
   return initPromise.then(() => msal);
 }
 
+// Decodifica el payload (JWT) del access token para leer claims como "roles".
+// El access token de la API trae los App Roles asignados al usuario en el
+// registro de la API (vidasalud-bff-api), que el ID token del SPA no incluye.
+export function claimsFromAccessToken(accessToken = '') {
+  try {
+    const part = accessToken.split('.')[1];
+    if (!part) return null;
+    const base64 = part.replace(/-/g, '+').replace(/_/g, '/');
+    const json = decodeURIComponent(
+      atob(base64)
+        .split('')
+        .map((c) => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
+        .join('')
+    );
+    return JSON.parse(json);
+  } catch {
+    return null;
+  }
+}
+
 // Mapea los claim `roles` del token de Azure AD (App Roles) a roles internos.
 export function mapAzureRolesToInternal(roles = []) {
   const r = roles.map((x) => String(x).toLowerCase());

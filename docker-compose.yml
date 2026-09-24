@@ -1,0 +1,72 @@
+name: vidasalud
+
+# Entorno común de los 3 microservicios Spring Boot.
+# JVM acotada: heap pequeño, GC serial (1 hilo), 1 compilador JIT, sin JMX/perf.
+# Tomcat: pocos threads (1 MB de stack c/u) y conexiones acotadas.
+# Persistencia H2/JPA: pool mínimo, sin open-in-view, sin consola ni SQL trace.
+x-backend: &backend
+  JAVA_TOOL_OPTIONS: -Xms32m -Xmx192m -XX:MaxMetaspaceSize=96m -XX:MaxDirectMemorySize=32m -XX:+UseSerialGC -XX:CICompilerCount=1 -XX:ActiveProcessorCount=1 -XX:TieredStopAtLevel=1 -XX:-UsePerfData -XX:+ExitOnOutOfMemoryError -Dspring.jmx.enabled=false -Djava.net.preferIPv4Stack=true
+  SERVER_TOMCAT_THREADS_MAX: "10"
+  SERVER_TOMCAT_THREADS_MIN_SPARE: "2"
+  SERVER_TOMCAT_MAX_CONNECTIONS: "50"
+  SERVER_TOMCAT_ACCEPT_COUNT: "20"
+  SPRING_JPA_OPEN_IN_VIEW: "false"
+  SPRING_JPA_SHOW_SQL: "false"
+  SPRING_H2_CONSOLE_ENABLED: "false"
+  SPRING_DATASOURCE_HIKARI_MAXIMUM_POOL_SIZE: "2"
+  SPRING_DATASOURCE_HIKARI_MINIMUM_IDLE: "1"
+
+services:
+  catalogo:
+    build:
+      context: ./ms-vidasalud-catalogo
+    container_name: ms-vidasalud-catalogo
+    environment:
+      <<: *backend
+    mem_limit: 384m
+    ports:
+      - "8081:8081"
+
+  atenciones:
+    build:
+      context: ./ms-vidasalud-atenciones
+    container_name: ms-vidasalud-atenciones
+    environment:
+      <<: *backend
+    mem_limit: 384m
+    ports:
+      - "8082:8082"
+
+  bff:
+    build:
+      context: ./ms-vidasalud-bff
+    container_name: ms-vidasalud-bff
+    depends_on:
+      - catalogo
+      - atenciones
+    environment:
+      <<: *backend
+      BFF_CATALOGO_BASEURL: http://catalogo:8081
+      BFF_ATENCIONES_BASEURL: http://atenciones:8082
+    mem_limit: 384m
+    ports:
+      - "8080:8080"
+
+  frontend:
+    build:
+      context: ./vidasalud-frontend
+      args:
+        VITE_API_URL: /api
+        VITE_USE_MOCKS: "true"
+        VITE_USE_API_PRESTACIONES: "true"
+        VITE_USE_API_ATENCIONES: "true"
+        VITE_MSAL_CLIENT_ID: ec60a5af-ab77-42a4-b963-1e384c17be05
+        VITE_MSAL_TENANT_ID: a02c872a-3746-4efc-a2e3-1f8e608b99e4
+        VITE_MSAL_REDIRECT_URI: http://localhost:5173
+        VITE_MSAL_SCOPES: openid,profile,email,api://6db95f4d-96a5-47ca-bc8e-e43bd5eda9ab/access_as_user
+    container_name: vidasalud-frontend
+    depends_on:
+      - bff
+    mem_limit: 64m
+    ports:
+      - "5173:80"

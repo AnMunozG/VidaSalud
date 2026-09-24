@@ -6,5 +6,9 @@ CREATE TABLE atenciones (
     prestacion_id BIGINT NOT NULL,
     fecha_hora TIMESTAMP NOT NULL,
     estado VARCHAR(255) NOT NULL,
-    codigo_box VARCHAR(255)
+    codigo_box VARCHAR(255),
+    paciente_nombre VARCHAR(200),
+    paciente_email VARCHAR(255),
+    observaciones VARCHAR(1000),
+    centro_id BIGINT
 );

@@ -33,4 +33,14 @@ public class Atencion {
     private String estado; // SOLICITADA, CONFIRMADA, EN_ESPERA, EN_ATENCION, CERRADA, CANCELADA
 
     private String codigoBox;
+
+    @Column(length = 200)
+    private String pacienteNombre;
+
+    private String pacienteEmail;
+
+    @Column(length = 1000)
+    private String observaciones;
+
+    private Long centroId;
 }

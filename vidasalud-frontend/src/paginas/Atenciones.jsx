@@ -6,7 +6,7 @@ import Modal from "../componentes/Modal";
 import ModalFormulario from "../componentes/ModalFormulario";
 import BannerPagina from "../componentes/BannerPagina";
 import BoTable from "../componentes/BoTable";
-import { atencionesService, catalogoService, ESTADOS_ATENCION, getEstadosDisponibles, formatearFecha, formatearFechaHora } from "../api.js";
+import { atencionesService, catalogoService, ESTADOS_ATENCION, formatearFecha, formatearFechaHora } from "../api.js";
 import { hoyISO } from "../constants.js";
 import { BANNERS } from "../componentes/Datos.js";
 import { encontrarPorId } from "../utilidades.js";
@@ -127,7 +127,10 @@ export default function Appointments() {
       >
         <BoTable columnas={["Cod.", "Paciente", "Prestación", "Centro", "Box", "Fecha · Hora", "Solicitó", "Estado", { texto: "Acciones", clase: "bo-actions-th" }]}>
           {citas.map((c) => {
-              const disponibles = getEstadosDisponibles(c.estado, user.rol);
+              const esPersonal = user.rol !== "paciente";
+              const disponibles = esPersonal
+                ? ESTADOS_ATENCION.filter((s) => s !== c.estado)
+                : ["Cancelada"];
               const estadoTerminal = c.estado === "Cancelada" || c.estado === "Cerrada";
               const puedeImprimir = user.rol !== "paciente" && c.estado !== "Solicitada" && c.estado !== "Cancelada";
               return (
@@ -237,7 +240,7 @@ function CrearAtencionModal({ show, onClose, onCreada }) {
     fecha: hoyISO(),
     hora: "",
     pacienteNombre: esPaciente ? user.nombre : "",
-    pacienteEmail: esPaciente ? user.email : "",
+    pacienteEmail: user.email || "",
     observaciones: "",
   }));
 
@@ -371,9 +374,10 @@ function CrearAtencionModal({ show, onClose, onCreada }) {
               className="form-control"
               placeholder="correo@paciente.cl"
               value={form.pacienteEmail}
-              onChange={(e) => set("pacienteEmail", e.target.value)}
-              readOnly={esPaciente}
+              readOnly
+              title={`Correo de la cuenta con la que iniciaste sesión (${user.email || "sín correo"})`}
             />
+            <div className="form-text small">Se completa con el correo de tu cuenta de sesión.</div>
           </div>
           <div className="col-md-6">
             <label className="form-label fw-semibold small">Observaciones</label>
@@ -423,14 +427,6 @@ function CrearAtencionModal({ show, onClose, onCreada }) {
             )}
           </div>
         )}
-
-        <div className="d-flex justify-content-end gap-2 mt-4">
-          <button type="button" className="btn btn-outline-secondary" onClick={onClose}>Cancelar</button>
-          <button type="submit" className="btn btn-primary" disabled={guardando}>
-            <i className="bi bi-calendar2-plus me-1"></i>
-            {guardando ? "Agendando…" : esPaciente ? "Solicitar atención" : "Confirmar atención"}
-          </button>
-        </div>
     </ModalFormulario>
   );
 }
