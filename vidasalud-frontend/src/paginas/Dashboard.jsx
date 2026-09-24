@@ -158,7 +158,7 @@ function DashboardRecepcionista() {
   const siguienteAccion = (estado) => {
     if (estado === "Confirmada") return { estado: "En espera", label: "Registrar llegada", icon: "bi-box-arrow-in-down", cls: "btn-outline-success" };
     if (estado === "En espera") return { estado: "En atención", label: "Iniciar atención", icon: "bi-play-circle", cls: "btn-outline-warning" };
-    if (estado === "En atención") return { estado: "Atendida", label: "Marcar atendida", icon: "bi-check-lg", cls: "btn-outline-primary" };
+    if (estado === "En atención") return { estado: "Cerrada", label: "Cerrar atención", icon: "bi-check-lg", cls: "btn-outline-primary" };
     return null;
   };
 

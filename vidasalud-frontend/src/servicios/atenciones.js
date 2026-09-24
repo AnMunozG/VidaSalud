@@ -1,6 +1,7 @@
 import api from './api';
 import * as mock from '../componentes/Datos.js';
 import { USE_MOCKS } from './api';
+import { hoyISO } from '../constants.js';
 
 // `true`: la página Atenciones consume el microservicio real
 // (/api/atenciones). Los cupos (slots) siguen usando los mocks según
@@ -17,6 +18,18 @@ const ESTADO_A_ENUM = {
   Cancelada: 'CANCELADA',
 };
 const ENUM_A_ESTADO = Object.fromEntries(Object.entries(ESTADO_A_ENUM).map(([k, v]) => [v, k]));
+
+// La API no guarda la hora real de llegada; se estima la espera a partir de la
+// hora programada para los pacientes que ya están en el centro.
+const calcularEsperaMin = (fechaHora, estado) => {
+  if (estado === "Confirmada") return 0;
+  const programada = new Date(fechaHora);
+  if (Number.isNaN(programada.getTime())) return 0;
+  return Math.max(0, Math.round((Date.now() - programada.getTime()) / 60000));
+};
+
+// Estados que se muestran en la sala de espera del recepcionista.
+const SALA_ESPERA_ESTADOS = new Set(["CONFIRMADA", "EN_ESPERA", "EN_ATENCION"]);
 
 const nombreUsuario = (id) => {
   const u = mock.usuariosDemo.find((x) => String(x.id) === String(id));
@@ -99,6 +112,25 @@ export const atencionesService = {
     }
     if (USE_MOCKS) return mock.mockChangeEstado(id, estado, actor);
     return api.patch(`/appointments/${id}/estado`, { estado });
+  },
+  // Sala de espera del recepcionista: cuando las atenciones se persisten en el
+  // microservicio real, se calcula desde GET /atenciones en lugar de los mocks.
+  salaEspera: async () => {
+    if (USA_API_ATENCIONES) {
+      const [lista, prestaciones] = await Promise.all([
+        api.get('/atenciones'),
+        api.get('/catalogo/prestaciones'),
+      ]);
+      const mapa = new Map(prestaciones.map((p) => [Number(p.id), p]));
+      const hoy = hoyISO();
+      return lista
+        .filter((a) => SALA_ESPERA_ESTADOS.has(a.estado))
+        .filter((a) => String(a.fechaHora).startsWith(hoy))
+        .map((a) => ({ ...aAtencionUI(a, mapa), tiempoEsperaMin: calcularEsperaMin(a.fechaHora, a.estado) }))
+        .sort((x, y) => (x.estado === "En espera" ? -1 : 1) - (y.estado === "En espera" ? -1 : 1) || String(x.hora).localeCompare(String(y.hora)));
+    }
+    if (USE_MOCKS) return mock.mockSalaEspera();
+    return api.get('/dashboard/sala-espera');
   },
   getSlots: (params) => {
     if (USE_MOCKS) {
