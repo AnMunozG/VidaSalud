@@ -3,7 +3,7 @@ name: vidasalud
 # Entorno común de los 3 microservicios Spring Boot.
 # JVM acotada: heap pequeño, GC serial (1 hilo), 1 compilador JIT, sin JMX/perf.
 # Tomcat: pocos threads (1 MB de stack c/u) y conexiones acotadas.
-# Persistencia H2/JPA: pool mínimo, sin open-in-view, sin consola ni SQL trace.
+# Persistencia: pool mínimo, sin open-in-view, sin SQL trace.
 x-backend: &backend
   JAVA_TOOL_OPTIONS: -Xms32m -Xmx192m -XX:MaxMetaspaceSize=96m -XX:MaxDirectMemorySize=32m -XX:+UseSerialGC -XX:CICompilerCount=1 -XX:ActiveProcessorCount=1 -XX:TieredStopAtLevel=1 -XX:-UsePerfData -XX:+ExitOnOutOfMemoryError -Dspring.jmx.enabled=false -Djava.net.preferIPv4Stack=true
   SERVER_TOMCAT_THREADS_MAX: "10"
@@ -17,30 +17,97 @@ x-backend: &backend
   SPRING_DATASOURCE_HIKARI_MINIMUM_IDLE: "1"
 
 services:
+  # ── Base de datos de catálogo ─────────────────────────────
+  catalogdb:
+    image: mariadb:11
+    container_name: vidasalud-catalogdb
+    restart: unless-stopped
+    environment:
+      MARIADB_ROOT_PASSWORD: vidasalud_root
+      MARIADB_DATABASE: catalogo
+      MARIADB_USER: vidasalud
+      MARIADB_PASSWORD: vidasalud
+    command: >
+      --performance-schema=OFF
+      --innodb-buffer-pool-size=64M
+      --innodb-flush-log-at-trx-commit=2
+      --max-connections=50
+    volumes:
+      - catalogdata:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    mem_limit: 256m
+    networks: [vidasalud]
+
+  # ── Base de datos de atenciones ──────────────────────────
+  atencionesdb:
+    image: mariadb:11
+    container_name: vidasalud-atencionesdb
+    restart: unless-stopped
+    environment:
+      MARIADB_ROOT_PASSWORD: vidasalud_root
+      MARIADB_DATABASE: atenciones
+      MARIADB_USER: vidasalud
+      MARIADB_PASSWORD: vidasalud
+    command: >
+      --performance-schema=OFF
+      --innodb-buffer-pool-size=64M
+      --innodb-flush-log-at-trx-commit=2
+      --max-connections=50
+    volumes:
+      - atencionesdata:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    mem_limit: 256m
+    networks: [vidasalud]
+
   catalogo:
     build:
       context: ./ms-vidasalud-catalogo
     container_name: ms-vidasalud-catalogo
+    restart: unless-stopped
+    depends_on:
+      catalogdb:
+        condition: service_healthy
     environment:
       <<: *backend
+      SPRING_PROFILES_ACTIVE: mariadb
+      SPRING_DATASOURCE_URL: jdbc:mariadb://catalogdb:3306/catalogo
+      SPRING_DATASOURCE_USERNAME: vidasalud
+      SPRING_DATASOURCE_PASSWORD: vidasalud
     mem_limit: 384m
-    ports:
-      - "8081:8081"
+    networks: [vidasalud]
 
   atenciones:
     build:
       context: ./ms-vidasalud-atenciones
     container_name: ms-vidasalud-atenciones
+    restart: unless-stopped
+    depends_on:
+      atencionesdb:
+        condition: service_healthy
     environment:
       <<: *backend
+      SPRING_PROFILES_ACTIVE: mariadb
+      SPRING_DATASOURCE_URL: jdbc:mariadb://atencionesdb:3306/atenciones
+      SPRING_DATASOURCE_USERNAME: vidasalud
+      SPRING_DATASOURCE_PASSWORD: vidasalud
     mem_limit: 384m
-    ports:
-      - "8082:8082"
+    networks: [vidasalud]
 
   bff:
     build:
       context: ./ms-vidasalud-bff
     container_name: ms-vidasalud-bff
+    restart: unless-stopped
     depends_on:
       - catalogo
       - atenciones
@@ -48,25 +115,40 @@ services:
       <<: *backend
       BFF_CATALOGO_BASEURL: http://catalogo:8081
       BFF_ATENCIONES_BASEURL: http://atenciones:8082
+      BFF_CORS_ALLOWED_ORIGINS: ${BFF_CORS_ALLOWED_ORIGINS:-http://localhost:5173,https://vidasalud.duckdns.org}
     mem_limit: 384m
-    ports:
-      - "8080:8080"
+    networks: [vidasalud]
 
   frontend:
     build:
       context: ./vidasalud-frontend
       args:
-        VITE_API_URL: /api
-        VITE_USE_MOCKS: "true"
-        VITE_USE_API_PRESTACIONES: "true"
-        VITE_USE_API_ATENCIONES: "true"
-        VITE_MSAL_CLIENT_ID: ec60a5af-ab77-42a4-b963-1e384c17be05
-        VITE_MSAL_TENANT_ID: a02c872a-3746-4efc-a2e3-1f8e608b99e4
-        VITE_MSAL_REDIRECT_URI: http://localhost:5173
-        VITE_MSAL_SCOPES: openid,profile,email,api://6db95f4d-96a5-47ca-bc8e-e43bd5eda9ab/access_as_user
+        VITE_API_URL: ${VITE_API_URL:-/api}
+        VITE_USE_MOCKS: ${VITE_USE_MOCKS:-true}
+        VITE_USE_API_PRESTACIONES: ${VITE_USE_API_PRESTACIONES:-true}
+        VITE_USE_API_ATENCIONES: ${VITE_USE_API_ATENCIONES:-true}
+        VITE_MSAL_CLIENT_ID: ${VITE_MSAL_CLIENT_ID:-ec60a5af-ab77-42a4-b963-1e384c17be05}
+        VITE_MSAL_TENANT_ID: ${VITE_MSAL_TENANT_ID:-a02c872a-3746-4efc-a2e3-1f8e608b99e4}
+        VITE_MSAL_REDIRECT_URI: ${VITE_MSAL_REDIRECT_URI:-https://vidasalud.duckdns.org}
+        VITE_MSAL_SCOPES: ${VITE_MSAL_SCOPES:-openid,profile,email,api://6db95f4d-96a5-47ca-bc8e-e43bd5eda9ab/access_as_user}
     container_name: vidasalud-frontend
+    restart: unless-stopped
     depends_on:
       - bff
-    mem_limit: 64m
     ports:
-      - "5173:80"
+      - "80:80"
+      - "443:443"
+    volumes:
+      # Certificados Let's Encrypt del host montados dentro del contenedor nginx.
+      - ${CERTS_DIR:-/etc/letsencrypt/live/vidasalud.duckdns.org}/fullchain.pem:/etc/nginx/ssl/fullchain.pem:ro
+      - ${CERTS_DIR:-/etc/letsencrypt/live/vidasalud.duckdns.org}/privkey.pem:/etc/nginx/ssl/privkey.pem:ro
+    mem_limit: 64m
+    networks: [vidasalud]
+
+networks:
+  vidasalud:
+    driver: bridge
+
+volumes:
+  catalogdata: {}
+  atencionesdata: {}
