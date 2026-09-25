@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuite xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://maven.apache.org/surefire/maven-surefire-plugin/xsd/surefire-test-report.xsd" version="3.0.2" name="com.vidasalud.bff.controller.GatewayProxyControllerTest" time="0.058" tests="4" errors="0" skipped="0" failures="0" flakes="0">
+<testsuite xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://maven.apache.org/surefire/maven-surefire-plugin/xsd/surefire-test-report.xsd" version="3.0.2" name="com.vidasalud.bff.controller.GatewayProxyControllerAuthorizationTest" time="6.358" tests="3" errors="0" skipped="0" failures="0" flakes="0">
   <properties>
     <property name="java.specification.version" value="25"/>
     <property name="sun.cpu.isalist" value="amd64"/>
@@ -65,8 +65,36 @@
     <property name="java.class.version" value="69.0"/>
     <property name="LOGGED_APPLICATION_NAME" value="[ms-vidasalud-bff] "/>
   </properties>
-  <testcase name="reenviaGETDeCatalogoHaciaMicroservicio" classname="com.vidasalud.bff.controller.GatewayProxyControllerTest" time="0.033"/>
-  <testcase name="propagaEstadoDeErrorDelMicroservicio" classname="com.vidasalud.bff.controller.GatewayProxyControllerTest" time="0.005"/>
-  <testcase name="reenviaGETDeAtencionesConQueryParams" classname="com.vidasalud.bff.controller.GatewayProxyControllerTest" time="0.006"/>
-  <testcase name="reenviaPOSTDeCatalogoConCuerpo" classname="com.vidasalud.bff.controller.GatewayProxyControllerTest" time="0.005"/>
+  <testcase name="pacienteNoPuedeEscribirEnCatalogo" classname="com.vidasalud.bff.controller.GatewayProxyControllerAuthorizationTest" time="1.244">
+    <system-out><![CDATA[12:31:22.710 [main] INFO org.springframework.test.context.support.AnnotationConfigContextLoaderUtils -- Could not detect default configuration classes for test class [com.vidasalud.bff.controller.GatewayProxyControllerAuthorizationTest]: GatewayProxyControllerAuthorizationTest does not declare any static, non-private, non-final, nested classes annotated with @Configuration.
+12:31:22.971 [main] INFO org.springframework.boot.test.context.SpringBootTestContextBootstrapper -- Found @SpringBootConfiguration com.vidasalud.bff.MsVidasaludBffApplication for test class com.vidasalud.bff.controller.GatewayProxyControllerAuthorizationTest
+12:31:23.131 [main] INFO org.springframework.test.context.support.AnnotationConfigContextLoaderUtils -- Could not detect default configuration classes for test class [com.vidasalud.bff.controller.GatewayProxyControllerAuthorizationTest]: GatewayProxyControllerAuthorizationTest does not declare any static, non-private, non-final, nested classes annotated with @Configuration.
+12:31:23.136 [main] INFO org.springframework.boot.test.context.SpringBootTestContextBootstrapper -- Found @SpringBootConfiguration com.vidasalud.bff.MsVidasaludBffApplication for test class com.vidasalud.bff.controller.GatewayProxyControllerAuthorizationTest
+
+  .   ____          _            __ _ _
+ /\\ / ___'_ __ _ _(_)_ __  __ _ \ \ \ \
+( ( )\___ | '_ | '_| | '_ \/ _` | \ \ \ \
+ \\/  ___)| |_)| | | | | || (_| |  ) ) ) )
+  '  |____| .__|_| |_|_| |_\__, | / / / /
+ =========|_|==============|___/=/_/_/_/
+
+ :: Spring Boot ::                (v4.1.1)
+
+2026-09-24T12:31:23.761-03:00  INFO 42232 --- [ms-vidasalud-bff] [           main] .GatewayProxyControllerAuthorizationTest : Starting GatewayProxyControllerAuthorizationTest using Java 25.0.1 with PID 42232 (started by sinit in C:\Users\sinit\Desktop\VidaSalud\ms-vidasalud-bff)
+2026-09-24T12:31:23.764-03:00  INFO 42232 --- [ms-vidasalud-bff] [           main] .GatewayProxyControllerAuthorizationTest : No active profile set, falling back to 1 default profile: "default"
+2026-09-24T12:31:26.572-03:00  INFO 42232 --- [ms-vidasalud-bff] [           main] o.s.v.b.OptionalValidatorFactoryBean     : Failed to set up a Bean Validation provider: jakarta.validation.NoProviderFoundException: Unable to create a Configuration, because no Jakarta Validation provider could be found. Add a provider like Hibernate Validator (RI) to your classpath.
+2026-09-24T12:31:27.114-03:00  INFO 42232 --- [ms-vidasalud-bff] [           main] o.s.b.t.m.w.SpringBootMockServletContext : Initializing Spring TestDispatcherServlet ''
+2026-09-24T12:31:27.115-03:00  INFO 42232 --- [ms-vidasalud-bff] [           main] o.s.t.web.servlet.TestDispatcherServlet  : Initializing Servlet ''
+2026-09-24T12:31:27.120-03:00  INFO 42232 --- [ms-vidasalud-bff] [           main] o.s.t.web.servlet.TestDispatcherServlet  : Completed initialization in 5 ms
+2026-09-24T12:31:27.305-03:00  INFO 42232 --- [ms-vidasalud-bff] [           main] .GatewayProxyControllerAuthorizationTest : Started GatewayProxyControllerAuthorizationTest in 4.041 seconds (process running for 6.052)
+]]></system-out>
+    <system-err><![CDATA[Mockito is currently self-attaching to enable the inline-mock-maker. This will no longer work in future releases of the JDK. Please add Mockito as an agent to your build as described in Mockito's documentation: https://javadoc.io/doc/org.mockito/mockito-core/latest/org.mockito/org/mockito/Mockito.html#0.3
+WARNING: A Java agent has been loaded dynamically (C:\Users\sinit\.m2\repository\net\bytebuddy\byte-buddy-agent\1.18.11\byte-buddy-agent-1.18.11.jar)
+WARNING: If a serviceability tool is in use, please run with -XX:+EnableDynamicAgentLoading to hide this warning
+WARNING: If a serviceability tool is not in use, please run with -Djdk.instrument.traceUsage for more information
+WARNING: Dynamic loading of agents will be disallowed by default in a future release
+]]></system-err>
+  </testcase>
+  <testcase name="pacientePuedeLeerCatalogo" classname="com.vidasalud.bff.controller.GatewayProxyControllerAuthorizationTest" time="0.11"/>
+  <testcase name="soloAdminPuedeEliminarAtenciones" classname="com.vidasalud.bff.controller.GatewayProxyControllerAuthorizationTest" time="0.019"/>
 </testsuite>

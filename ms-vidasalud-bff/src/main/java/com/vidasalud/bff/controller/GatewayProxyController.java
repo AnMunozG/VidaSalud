@@ -8,8 +8,13 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.RequestEntity;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.client.RestTemplate;
@@ -37,13 +42,16 @@ import java.util.Set;
  *
  * <p>Seguridad: la validación del token (Azure AD) la hace la cadena de filtros
  * de Spring Security definida en {@code config.SecurityConfig}; este controller
- * solo se ejecuta cuando el token ya pasó esa validación.</p>
+ * solo se ejecuta cuando el token ya pasó esa validación. Además, cada ruta y
+ * método HTTP exige un rol concreto con {@code @PreAuthorize} (roles Azure
+ * normalizados: ADMIN, RECEPCIONISTA, PACIENTE, AUDITOR):</p>
+ * <ul>
+ *   <li>{@code /api/catalogo/**}   - GET: ADMIN/RECEPCIONISTA/PACIENTE · escrituras: ADMIN/RECEPCIONISTA</li>
+ *   <li>{@code /api/atenciones/**} - GET/POST/PUT: ADMIN/RECEPCIONISTA/PACIENTE · DELETE: ADMIN</li>
+ * </ul>
  */
 @RestController
 public class GatewayProxyController {
-
-    private static final String CATALOGO_PREFIX = "/api/catalogo";
-    private static final String ATENCIONES_PREFIX = "/api/atenciones";
 
     // Cabeceras "hop-by-hop" que NO se reenvían (son de un salto de red, no del recurso).
     private static final Set<String> CABECERAS_NO_REENVIABLES = Set.of(
@@ -70,9 +78,50 @@ public class GatewayProxyController {
         this.atencionesBaseUrl = atencionesBaseUrl;
     }
 
-    @RequestMapping({"/api/catalogo/**", "/api/atenciones/**"})
-    public ResponseEntity<byte[]> proxy(HttpServletRequest request, @RequestBody(required = false) byte[] body) {
-        String baseUrl = request.getRequestURI().startsWith(CATALOGO_PREFIX) ? catalogoBaseUrl : atencionesBaseUrl;
+    /** Roles con acceso a la lectura del catálogo (lo consultan también los pacientes). */
+    private static final String ROLES_CATALOGO_LECTURA = "hasAnyRole('ADMIN', 'RECEPCIONISTA', 'PACIENTE')";
+    /** Roles con acceso a las escrituras sobre el catálogo. */
+    private static final String ROLES_CATALOGO_ESCRITURA = "hasAnyRole('ADMIN', 'RECEPCIONISTA')";
+    /** Roles con acceso a lectura/creación/actualización de atenciones. */
+    private static final String ROLES_ATENCIONES_GESTION = "hasAnyRole('ADMIN', 'RECEPCIONISTA', 'PACIENTE')";
+
+    @GetMapping("/api/catalogo/**")
+    @PreAuthorize(ROLES_CATALOGO_LECTURA)
+    public ResponseEntity<byte[]> catalogoLeer(HttpServletRequest request) {
+        return reenviarConManejo(request, null, catalogoBaseUrl);
+    }
+
+    @RequestMapping(value = "/api/catalogo/**", method = {RequestMethod.POST, RequestMethod.PUT, RequestMethod.PATCH, RequestMethod.DELETE})
+    @PreAuthorize(ROLES_CATALOGO_ESCRITURA)
+    public ResponseEntity<byte[]> catalogoEscribir(HttpServletRequest request, @RequestBody(required = false) byte[] body) {
+        return reenviarConManejo(request, body, catalogoBaseUrl);
+    }
+
+    @GetMapping("/api/atenciones/**")
+    @PreAuthorize(ROLES_ATENCIONES_GESTION)
+    public ResponseEntity<byte[]> atencionesLeer(HttpServletRequest request) {
+        return reenviarConManejo(request, null, atencionesBaseUrl);
+    }
+
+    @PostMapping("/api/atenciones/**")
+    @PreAuthorize(ROLES_ATENCIONES_GESTION)
+    public ResponseEntity<byte[]> atencionesCrear(HttpServletRequest request, @RequestBody(required = false) byte[] body) {
+        return reenviarConManejo(request, body, atencionesBaseUrl);
+    }
+
+    @RequestMapping(value = "/api/atenciones/**", method = {RequestMethod.PUT, RequestMethod.PATCH})
+    @PreAuthorize(ROLES_ATENCIONES_GESTION)
+    public ResponseEntity<byte[]> atencionesActualizar(HttpServletRequest request, @RequestBody(required = false) byte[] body) {
+        return reenviarConManejo(request, body, atencionesBaseUrl);
+    }
+
+    @DeleteMapping("/api/atenciones/**")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<byte[]> atencionesEliminar(HttpServletRequest request) {
+        return reenviarConManejo(request, null, atencionesBaseUrl);
+    }
+
+    private ResponseEntity<byte[]> reenviarConManejo(HttpServletRequest request, byte[] body, String baseUrl) {
         String targetUrl = construirUrlDestino(baseUrl, request);
 
         try {

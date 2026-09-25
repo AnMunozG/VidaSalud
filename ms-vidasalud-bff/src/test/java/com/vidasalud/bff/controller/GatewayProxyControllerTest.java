@@ -39,7 +39,7 @@ class GatewayProxyControllerTest {
                 .andExpect(method(HttpMethod.GET))
                 .andRespond(withSuccess(bodyEsperado, MediaType.APPLICATION_JSON));
 
-        ResponseEntity<byte[]> response = controller.proxy(new MockHttpServletRequest("GET", "/api/catalogo/prestaciones"), null);
+        ResponseEntity<byte[]> response = controller.catalogoLeer(new MockHttpServletRequest("GET", "/api/catalogo/prestaciones"));
 
         Assertions.assertEquals(HttpStatus.OK, response.getStatusCode());
         Assertions.assertArrayEquals(bodyEsperado, response.getBody());
@@ -56,7 +56,7 @@ class GatewayProxyControllerTest {
         MockHttpServletRequest request = new MockHttpServletRequest("GET", "/api/atenciones");
         request.setQueryString("estado=EN_ESPERA");
 
-        ResponseEntity<byte[]> response = controller.proxy(request, null);
+        ResponseEntity<byte[]> response = controller.atencionesLeer(request);
 
         Assertions.assertEquals(HttpStatus.OK, response.getStatusCode());
         Assertions.assertArrayEquals(bodyEsperado, response.getBody());
@@ -74,7 +74,7 @@ class GatewayProxyControllerTest {
 
         MockHttpServletRequest request = new MockHttpServletRequest("POST", "/api/catalogo/prestaciones");
 
-        ResponseEntity<byte[]> response = controller.proxy(request, bodyEnviado);
+        ResponseEntity<byte[]> response = controller.catalogoEscribir(request, bodyEnviado);
 
         Assertions.assertEquals(HttpStatus.OK, response.getStatusCode());
         Assertions.assertArrayEquals(bodyEsperado, response.getBody());
@@ -87,7 +87,7 @@ class GatewayProxyControllerTest {
                 .andExpect(method(HttpMethod.DELETE))
                 .andRespond(withStatus(HttpStatus.NOT_FOUND));
 
-        ResponseEntity<byte[]> response = controller.proxy(new MockHttpServletRequest("DELETE", "/api/atenciones/999"), null);
+        ResponseEntity<byte[]> response = controller.atencionesEliminar(new MockHttpServletRequest("DELETE", "/api/atenciones/999"));
 
         Assertions.assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode());
         server.verify();

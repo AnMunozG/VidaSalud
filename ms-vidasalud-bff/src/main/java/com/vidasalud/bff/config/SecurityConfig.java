@@ -116,6 +116,12 @@ public class SecurityConfig {
     /**
      * Convierte el claim de App Roles de Azure AD ({@code roles}) en autoridades
      * de Spring Security. P. ej. {@code roles: ["admin"]} => {@code ROLE_ADMIN}.
+     *
+     * <p>Los nombres se normalizan igual que el frontend: {@code admin}/{@code administrador}
+     * => {@code ROLE_ADMIN}, {@code auditor} => {@code ROLE_AUDITOR},
+     * {@code operador}/{@code recepcionista} => {@code ROLE_RECEPCIONISTA} y cualquier
+     * otro valor (o ausencia de claim) => {@code ROLE_PACIENTE}. Así las reglas
+     * {@code hasRole(...)} coinciden sin importar cómo Azure nombre los App Roles.</p>
      */
     @Bean
     JwtAuthenticationConverter jwtAuthenticationConverter() {
@@ -123,13 +129,28 @@ public class SecurityConfig {
         converter.setJwtGrantedAuthoritiesConverter(jwt -> {
             List<String> roles = jwt.getClaimAsStringList("roles");
             if (roles == null || roles.isEmpty()) {
-                return List.of();
+                return List.of(new SimpleGrantedAuthority("ROLE_PACIENTE"));
             }
             return roles.stream()
-                    .map(role -> new SimpleGrantedAuthority("ROLE_" + role.toUpperCase(Locale.ROOT)))
+                    .map(role -> normalizeRol(role))
+                    .distinct()
                     .collect(Collectors.toList());
         });
         return converter;
+    }
+
+    private static SimpleGrantedAuthority normalizeRol(String rol) {
+        String nombre = rol.toLowerCase(Locale.ROOT).trim();
+        if (nombre.equals("admin") || nombre.equals("administrador")) {
+            return new SimpleGrantedAuthority("ROLE_ADMIN");
+        }
+        if (nombre.equals("auditor")) {
+            return new SimpleGrantedAuthority("ROLE_AUDITOR");
+        }
+        if (nombre.equals("operador") || nombre.equals("recepcionista")) {
+            return new SimpleGrantedAuthority("ROLE_RECEPCIONISTA");
+        }
+        return new SimpleGrantedAuthority("ROLE_PACIENTE");
     }
 
     // ── Validadores y respuestas de error ────────────────────────────────
