@@ -1,0 +1,5 @@
+com\vidasalud\ms_vidasalud_notify\dto\EventEnvelope.class
+com\vidasalud\ms_vidasalud_notify\MsVidasaludNotifyApplication.class
+com\vidasalud\ms_vidasalud_notify\service\NotificationService.class
+com\vidasalud\ms_vidasalud_notify\config\RabbitConfig.class
+com\vidasalud\ms_vidasalud_notify\service\NotificationServiceImpl.class
