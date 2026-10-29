@@ -1,6 +1,4 @@
-C:\Users\Hp\Downloads\VidaSalud-main\VidaSalud-main\ms-vidasalud-notify\src\main\java\com\vidasalud\ms_vidasalud_notify\config\RabbitConfig.java
+C:\Users\Hp\Downloads\VidaSalud-main\VidaSalud-main\ms-vidasalud-notify\src\main\java\com\vidasalud\ms_vidasalud_notify\config\RabbitMQConfig.java
 C:\Users\Hp\Downloads\VidaSalud-main\VidaSalud-main\ms-vidasalud-notify\src\main\java\com\vidasalud\ms_vidasalud_notify\dto\EventEnvelope.java
-C:\Users\Hp\Downloads\VidaSalud-main\VidaSalud-main\ms-vidasalud-notify\src\main\java\com\vidasalud\ms_vidasalud_notify\listener\NotificationListener.java
 C:\Users\Hp\Downloads\VidaSalud-main\VidaSalud-main\ms-vidasalud-notify\src\main\java\com\vidasalud\ms_vidasalud_notify\MsVidasaludNotifyApplication.java
-C:\Users\Hp\Downloads\VidaSalud-main\VidaSalud-main\ms-vidasalud-notify\src\main\java\com\vidasalud\ms_vidasalud_notify\service\impl\NotificationServiceImpl.java
-C:\Users\Hp\Downloads\VidaSalud-main\VidaSalud-main\ms-vidasalud-notify\src\main\java\com\vidasalud\ms_vidasalud_notify\service\NotificationService.java
+C:\Users\Hp\Downloads\VidaSalud-main\VidaSalud-main\ms-vidasalud-notify\src\main\java\com\vidasalud\ms_vidasalud_notify\service\NotificationListener.java
