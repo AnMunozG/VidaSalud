@@ -100,6 +100,12 @@ services:
       SPRING_DATASOURCE_URL: jdbc:mariadb://atencionesdb:3306/atenciones
       SPRING_DATASOURCE_USERNAME: vidasalud
       SPRING_DATASOURCE_PASSWORD: vidasalud
+      # Broker de la EC2 B (IP privada) para publicar eventos de notificación.
+      # Si no se define, atenciones arranca igual y solo registra un WARN al publicar.
+      RABBITMQ_HOST: ${RABBITMQ_HOST:-127.0.0.1}
+      RABBITMQ_PORT: ${RABBITMQ_PORT:-5672}
+      RABBITMQ_USERNAME: ${RABBITMQ_USERNAME:-guest}
+      RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD:-guest}
     mem_limit: 384m
     networks: [vidasalud]
 
