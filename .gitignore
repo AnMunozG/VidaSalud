@@ -1,0 +1,6 @@
+# Credenciales locales (nunca versionar)
+.env
+infra/notify/.env
+
+# Logs
+*.log

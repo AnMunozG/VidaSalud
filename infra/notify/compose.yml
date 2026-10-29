@@ -1,0 +1,52 @@
+# Stack de la EC2 B: RabbitMQ + ms-vidasalud-notify (consumidor de eventos).
+#
+# Uso, desde la raíz del repo:
+#   docker compose -f infra/notify/compose.yml up -d --build
+#
+# Requiere infra/notify/.env con RABBITMQ_USER y RABBITMQ_PASS
+# (copiar desde .env.example y cambiar la clave).
+
+name: vidasalud-notify
+
+services:
+  rabbitmq:
+    image: rabbitmq:4-management
+    container_name: vidasalud-rabbitmq
+    restart: unless-stopped
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER:?define RABBITMQ_USER en infra/notify/.env}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASS:?define RABBITMQ_PASS en infra/notify/.env}
+    ports:
+      # 5672 lo consume el productor (atenciones) desde la EC2 A vía IP privada.
+      # 15672 es el panel: restringirlo por Security Group o usar túnel SSH.
+      - "5672:5672"
+      - "15672:15672"
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    mem_limit: 512m
+
+  notify:
+    build:
+      context: ../../ms-vidasalud-notify
+    container_name: ms-vidasalud-notify
+    restart: unless-stopped
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    environment:
+      # Dentro de la red de compose el host es el nombre del servicio, no localhost.
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_PORT: "5672"
+      RABBITMQ_USERNAME: ${RABBITMQ_USER:?define RABBITMQ_USER en infra/notify/.env}
+      RABBITMQ_PASSWORD: ${RABBITMQ_PASS:?define RABBITMQ_PASS en infra/notify/.env}
+      JAVA_TOOL_OPTIONS: -Xms32m -Xmx192m -XX:MaxMetaspaceSize=96m -XX:MaxDirectMemorySize=32m -XX:+UseSerialGC -XX:CICompilerCount=1 -XX:ActiveProcessorCount=1 -XX:TieredStopAtLevel=1 -XX:-UsePerfData -Dspring.jmx.enabled=false
+    mem_limit: 384m
+
+volumes:
+  rabbitmq_data:
