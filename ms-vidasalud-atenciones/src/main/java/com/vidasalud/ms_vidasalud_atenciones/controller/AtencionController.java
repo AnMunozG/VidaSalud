@@ -3,7 +3,9 @@ package com.vidasalud.ms_vidasalud_atenciones.controller;
 import com.vidasalud.ms_vidasalud_atenciones.model.Atencion;
 import com.vidasalud.ms_vidasalud_atenciones.service.AtencionService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -45,6 +47,21 @@ public class AtencionController {
         }
         return service.cambiarEstado(id, nuevoEstado)
                 .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
+    }
+
+    /**
+     * Genera y descarga el comprobante PDF de la atención. Además publica el
+     * evento {@code ATENCION_IMPRESA} en el flujo {@code record} de RabbitMQ.
+     */
+    @PostMapping("/{id}/imprimir")
+    public ResponseEntity<byte[]> solicitarImpresion(@PathVariable Long id) {
+        return service.generarPdf(id)
+                .map(pdf -> ResponseEntity.ok()
+                        .contentType(MediaType.APPLICATION_PDF)
+                        .header(HttpHeaders.CONTENT_DISPOSITION,
+                                "attachment; filename=\"atencion-" + id + ".pdf\"")
+                        .body(pdf))
                 .orElse(ResponseEntity.notFound().build());
     }
 

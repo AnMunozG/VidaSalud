@@ -113,6 +113,16 @@ export const atencionesService = {
     if (USE_MOCKS) return mock.mockChangeEstado(id, estado, actor);
     return api.patch(`/appointments/${id}/estado`, { estado });
   },
+  // El backend genera el PDF y lo devuelve como binario; se descarga en el navegador.
+  solicitarImpresion: (id) => {
+    if (USA_API_ATENCIONES) {
+      return api.post(`/atenciones/${id}/imprimir`, null, { responseType: 'blob' });
+    }
+    if (USE_MOCKS) {
+      return Promise.resolve(new Blob(['VidaSalud - PDF simulado'], { type: 'application/pdf' }));
+    }
+    return api.post(`/appointments/${id}/print`, null, { responseType: 'blob' });
+  },
   // Sala de espera del recepcionista: cuando las atenciones se persisten en el
   // microservicio real, se calcula desde GET /atenciones en lugar de los mocks.
   salaEspera: async () => {

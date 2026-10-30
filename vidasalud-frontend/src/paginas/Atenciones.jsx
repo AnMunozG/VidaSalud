@@ -9,7 +9,7 @@ import BoTable from "../componentes/BoTable";
 import { atencionesService, catalogoService, ESTADOS_ATENCION, formatearFecha, formatearFechaHora } from "../api.js";
 import { hoyISO } from "../constants.js";
 import { BANNERS } from "../componentes/Datos.js";
-import { encontrarPorId } from "../utilidades.js";
+import { encontrarPorId, descargarBlob } from "../utilidades.js";
 
 export default function Appointments() {
   const { user } = useAuth();
@@ -23,6 +23,7 @@ export default function Appointments() {
   const [ticketCita, setTicketCita] = useState(null);
   const [cambiandoEstado, setCambiandoEstado] = useState(null);
   const [cancelacionCita, setCancelacionCita] = useState(null);
+  const [descargandoPdf, setDescargandoPdf] = useState(false);
   const [error, setError] = useState("");
 
   const cargar = useCallback(async () => {
@@ -68,6 +69,21 @@ export default function Appointments() {
     } finally {
       setCambiandoEstado(null);
       setCancelacionCita(null);
+    }
+  };
+
+  // El backend genera el PDF (y publica el evento record); aquí solo se
+  // descarga el archivo que devuelve la API.
+  const imprimirTicket = async () => {
+    if (!ticketCita || descargandoPdf) return;
+    setDescargandoPdf(true);
+    try {
+      const pdf = await atencionesService.solicitarImpresion(ticketCita.id);
+      descargarBlob(pdf, `atencion-${ticketCita.codigo || ticketCita.id}.pdf`);
+    } catch {
+      setError("No se pudo generar el PDF de la atención.");
+    } finally {
+      setDescargandoPdf(false);
     }
   };
 
@@ -188,8 +204,9 @@ export default function Appointments() {
           <TicketAdmision cita={ticketCita} />
           <div className="d-flex justify-content-end gap-2 mt-3 no-print">
             <button className="btn btn-outline-secondary" onClick={() => setTicketCita(null)}>Cerrar</button>
-            <button className="btn btn-primary" onClick={() => window.print()}>
-              <i className="bi bi-printer me-1"></i>Imprimir
+            <button className="btn btn-primary" onClick={imprimirTicket} disabled={descargandoPdf}>
+              <i className={`bi ${descargandoPdf ? "bi-hourglass-split" : "bi-file-earmark-pdf"} me-1`}></i>
+              {descargandoPdf ? "Generando PDF..." : "Descargar PDF"}
             </button>
           </div>
         </Modal>

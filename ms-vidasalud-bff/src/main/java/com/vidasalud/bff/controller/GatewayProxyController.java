@@ -161,6 +161,8 @@ public class GatewayProxyController {
         }
         copiarCabeceraSiExiste(respuesta.getHeaders(), cabecerasRespuesta, HttpHeaders.LOCATION);
         copiarCabeceraSiExiste(respuesta.getHeaders(), cabecerasRespuesta, HttpHeaders.ETAG);
+        // Necesaria para que el navegador conozca el nombre del archivo descargado (p. ej. el PDF de una atención).
+        copiarCabeceraSiExiste(respuesta.getHeaders(), cabecerasRespuesta, HttpHeaders.CONTENT_DISPOSITION);
 
         byte[] cuerpo = respuesta.getBody() != null ? respuesta.getBody() : new byte[0];
         return ResponseEntity.status(respuesta.getStatusCode())
